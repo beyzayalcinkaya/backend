@@ -2,18 +2,23 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 
+// PostgreSQL bağlantısı için Render ortam değişkenleri kullanılıyor
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: Number(process.env.DB_PORT), // Portu sayı olarak alıyoruz
+  ssl: {
+    rejectUnauthorized: false, // Render PostgreSQL için gerekli
+  },
 });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Ana route
 app.get("/", (req, res) => {
   res.send("Backend çalışıyor!");
 });
@@ -33,7 +38,6 @@ app.get("/blogs", async (req, res) => {
 // Tek blog
 app.get("/blogs/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("Parametre gelen name:", id);
   try {
     const result = await pool.query("SELECT * FROM myBlogs WHERE id = $1", [
       id,
@@ -47,10 +51,11 @@ app.get("/blogs/:id", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("Tek blog hatası:", err);
+    console.error("Tek blog hatasıı:", err);
     res.status(500).send("Database error");
   }
 });
 
+// Render port veya default 3002
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
