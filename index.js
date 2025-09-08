@@ -14,6 +14,8 @@ const pool = new Pool({
   },
 });
 
+console.log(process.env, "asd");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
