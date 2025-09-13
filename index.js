@@ -1,19 +1,19 @@
+require("dotenv").config(); // .env dosyasını okuyabilmek için
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 
+// Pool ayarları: Render Postgres ile bağlantı
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "blog_data",
-  password: "1234",
-  port: 5439,
+  connectionString: process.env.DATABASE_URL, // .env'deki DATABASE_URL kullanılacak
+  ssl: { rejectUnauthorized: false }, // Render Postgres SSL zorunlu
 });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Test route
 app.get("/", (req, res) => {
   res.send("Backend çalışıyor!");
 });
@@ -31,23 +31,15 @@ app.get("/blogs", async (req, res) => {
 });
 
 // Tek blog
-
 app.get("/blogs/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("Parametre gelen name:", id);
   try {
-    const result = await pool.query(
-      "SELECT * FROM myBlogs WHERE id = $1",
-
-      [id]
-    );
-    console.log("Sorgu sonucu:", result.rows);
-
+    const result = await pool.query("SELECT * FROM myBlogs WHERE id = $1", [
+      id,
+    ]);
     if (result.rows.length === 0) {
-      console.log("Blog bulunamadı!");
       return res.status(404).send("Blog not found");
     }
-
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Tek blog hatası:", err);
@@ -55,5 +47,8 @@ app.get("/blogs/:id", async (req, res) => {
   }
 });
 
-const PORT = 3002;
+// Backend portu
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
