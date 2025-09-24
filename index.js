@@ -1,28 +1,29 @@
-require("dotenv").config(); // .env dosyasını okuyabilmek için
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 
-// Pool ayarları: Render Postgres ile bağlantı
+// Postgres bağlantısı
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // .env'deki DATABASE_URL kullanılacak
-  ssl: { rejectUnauthorized: false }, // Render Postgres SSL zorunlu
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }, // Render/Postgres için gerekli
 });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test route
+// Ana rota
 app.get("/", (req, res) => {
   res.send("Backend çalışıyor!");
 });
 
-// Tüm bloglar
+// BLOG LISTESI (özet için)
 app.get("/blogs", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM myBlogs ORDER BY id ASC");
-    console.log("Tüm bloglar:", result.rows);
+    const result = await pool.query(
+      "SELECT id, name, title, desc1 FROM myBlogs ORDER BY id ASC"
+    );
     res.json(result.rows);
   } catch (err) {
     console.error("Tüm bloglar hatası:", err);
@@ -30,13 +31,14 @@ app.get("/blogs", async (req, res) => {
   }
 });
 
-// Tek blog
+// BLOG DETAY (tam veri)
 app.get("/blogs/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query("SELECT * FROM myBlogs WHERE id = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      "SELECT id, title, page_desc FROM myBlogs WHERE id = $1",
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).send("Blog not found");
     }
