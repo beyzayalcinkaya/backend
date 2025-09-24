@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 app.get("/blogs", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, title, desc1 FROM myBlogs ORDER BY id ASC"
+      "SELECT id, name, title, desc1, reading_time FROM myblogs ORDER BY id ASC"
     );
     res.json(result.rows);
   } catch (err) {
@@ -37,6 +37,7 @@ app.get("/blogs/:id", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, title, page_desc FROM myBlogs WHERE id = $1",
+
       [id]
     );
     if (result.rows.length === 0) {
