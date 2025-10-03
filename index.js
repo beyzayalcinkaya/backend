@@ -6,7 +6,8 @@ const { Pool } = require("pg");
 // Postgres bağlantısı
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Render/Postgres için gerekli
+  // Render/Postgres için gerekli
+  ssl: { rejectUnauthorized: false },
 });
 
 const app = express();
@@ -18,12 +19,34 @@ app.get("/", (req, res) => {
   res.send("Backend çalışıyor!");
 });
 
-// BLOG LISTESI (özet için)
+// ------------------------------------------------------------------
+// BLOG LISTESI (ÇOK DİLLİ) - title ve desc1 için dil desteği eklendi
+// ------------------------------------------------------------------
 app.get("/blogs", async (req, res) => {
+  // 1. Dil bilgisini HTTP başlığından al (Frontend'den gelen 'Accept-Language')
+  const langHeader = req.headers["accept-language"];
+  // Gelen başlık 'en' ise 'en' kullan, aksi halde 'tr' kullan
+  const lang = langHeader === "en" ? "en" : "tr";
+
+  // 2. PostgreSQL sütun son ekini belirle
+  const langSuffix = lang === "en" ? "_en" : "_tr";
+
+  // 3. PostgreSQL sorgusunu dinamik olarak oluştur
+  // title_tr/title_en ve desc1_tr/desc1_en sütunlarından veriyi çek,
+  // frontend'e sadece 'title' ve 'desc1' olarak gönder.
+  const selectQuery = `
+    SELECT 
+      id, 
+      name, 
+      reading_time, 
+      "title${langSuffix}" AS title, 
+      "desc1${langSuffix}" AS desc1 
+    FROM myblogs 
+    ORDER BY id ASC
+  `;
+
   try {
-    const result = await pool.query(
-      "SELECT id, name, title, desc1, reading_time FROM myblogs ORDER BY id ASC"
-    );
+    const result = await pool.query(selectQuery);
     res.json(result.rows);
   } catch (err) {
     console.error("Tüm bloglar hatası:", err);
@@ -31,15 +54,21 @@ app.get("/blogs", async (req, res) => {
   }
 });
 
-// BLOG DETAY (tam veri)
+// ------------------------------------------------------------------
+// BLOG DETAY (TEK DİLLİ) - Şimdilik sadece Türkçe veri çekiyor
+// ------------------------------------------------------------------
 app.get("/blogs/:id", async (req, res) => {
   const { id } = req.params;
+
+  // NOT: Bu rota, şimdilik sadece mevcut TR (page_desc_tr) verisini çeker.
+  // Çok dilli detay desteği için daha sonra güncellenmelidir.
+
   try {
     const result = await pool.query(
-      "SELECT id, title, page_desc FROM myBlogs WHERE id = $1",
-
+      "SELECT id, title_tr AS title, page_desc_tr AS page_desc FROM myBlogs WHERE id = $1",
       [id]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).send("Blog not found");
     }
